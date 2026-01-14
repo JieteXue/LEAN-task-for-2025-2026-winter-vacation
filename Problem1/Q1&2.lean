@@ -3,6 +3,7 @@ import Mathlib.Analysis.Normed.Module.Basic
 import Mathlib.Algebra.Module.Basic
 import Mathlib.Data.Set.Lattice
 import Mathlib.Order.Directed
+import Mathlib.Analysis.Normed.Operator.ContinuousLinearMap
 
 namespace GLM
 
@@ -11,13 +12,6 @@ variable {K E F : Type*} [NontriviallyNormedField K]
   [NormedAddCommGroup F] [NormedSpace K F]
   {U : Set (Submodule K E)}
 
-  {mappings : ∀ M ∈ U, M →L[K] F}
-  {covering : ∀ x : E, ∃ M ∈ U, x ∈ M}
-  {compatible : ∀ {M N} (hM : M ∈ U) (hN : N ∈ U)
-    (x : E) (hxM : x ∈ M) (hxN : x ∈ N),
-    mappings M hM ⟨x, hxM⟩ = mappings N hN ⟨x, hxN⟩}
-  {directed : DirectedOn (· ≤ ·) U}
-
 open Classical
 
 /- The following is the part for Q1
@@ -25,6 +19,7 @@ open Classical
 
 theorem gluedLinearMap_unique
   {covering : ∀ x : E, ∃ M ∈ U, x ∈ M}
+  {mappings : ∀ M ∈ U, M →L[K] F}
   (f g : E →ₗ[K] F)
   (hf : ∀ S (hS : S ∈ U), f.comp S.subtype = mappings S hS)
   (hg : ∀ S (hS : S ∈ U), g.comp S.subtype = mappings S hS) :
@@ -47,11 +42,11 @@ def gluedLinearMap
 
   (U : Set (Submodule K E))
   (mappings : ∀ M ∈ U, M →L[K] F)
-  {covering : ∀ x : E, ∃ M ∈ U, x ∈ M}
-  {compatible : ∀ {M N} (hM : M ∈ U) (hN : N ∈ U)
+  (covering : ∀ x : E, ∃ M ∈ U, x ∈ M)
+  (compatible : ∀ {M N} (hM : M ∈ U) (hN : N ∈ U)
     (x : E) (hxM : x ∈ M) (hxN : x ∈ N),
-    mappings M hM ⟨x, hxM⟩ = mappings N hN ⟨x, hxN⟩}
-  {directed : DirectedOn (· ≤ ·) U}:
+    mappings M hM ⟨x, hxM⟩ = mappings N hN ⟨x, hxN⟩)
+  (directed : DirectedOn (· ≤ ·) U):
 
   E →ₗ[K] F :=
   { toFun := fun x =>
@@ -117,8 +112,44 @@ def gluedLinearMap
 
 
 
-/- The following part is for Q2
-  We have defined a linear mapping from E to F,
-  now we show that this mapping must be continuous -/
+/- The following part is for Q2 -/
+-- The condition in addition:
+
+structure HasUniformBound
+  (U : Set (Submodule K E))
+  (mappings : ∀ M ∈ U, M →L[K] F) where
+  C : ℝ
+  C_pos : 0 < C
+  bound : ∀ M (hM : M ∈ U), ‖mappings M hM‖ ≤ C
+
+theorem gluedLinearMap_continuous
+  (U : Set (Submodule K E))
+  (mappings : ∀ M ∈ U, M →L[K] F)
+  (covering : ∀ x : E, ∃ M ∈ U, x ∈ M)
+  (compatible : ∀ {M N} (hM : M ∈ U) (hN : N ∈ U)
+    (x : E) (hxM : x ∈ M) (hxN : x ∈ N),
+    mappings M hM ⟨x, hxM⟩ = mappings N hN ⟨x, hxN⟩)
+  (directed : DirectedOn (· ≤ ·) U)
+  (h_bound : HasUniformBound U mappings) :
+  Continuous (gluedLinearMap U mappings covering compatible directed):= by
+  rcases h_bound with ⟨C, hC_pos, hC_bound⟩
+  let f := gluedLinearMap U mappings covering compatible directed
+
+  refine continuous_of_linear_of_bound f.map_add' f.map_smul' (C := C) ?_
+  intro x
+
+  let M_f := (covering x).choose
+  let ⟨hM_f, hx_f⟩ := (covering x).choose_spec
+  rcases covering x with ⟨M, hM, hx⟩
+
+  calc
+    ‖f x‖ = ‖mappings M_f hM_f ⟨x, hx_f⟩‖ := by sorry
+    _ = ‖mappings M hM ⟨x, hx⟩‖ := by
+      rw [compatible hM_f hM x hx_f hx]
+    _ ≤ ‖mappings M hM‖ * ‖(⟨x, hx⟩ : M)‖ := (mappings M hM).le_opNorm _
+    _ ≤ C * ‖x‖ := by
+      gcongr
+      · exact hC_bound M hM
+      · simp
 
 end GLM
