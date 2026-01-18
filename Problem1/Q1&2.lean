@@ -12,7 +12,7 @@ variable {K E F : Type*} [NontriviallyNormedField K]
   [NormedAddCommGroup F] [NormedSpace K F]
   {U : Set (Submodule K E)}
 
-open Classical
+
 
 /- The following is the part for Q1
   We show that the mapping is unique first -/
@@ -50,9 +50,7 @@ def gluedLinearMap
 
   E →ₗ[K] F :=
   { toFun := fun x =>
-      let M := (covering x).choose
-      let ⟨hM, hx⟩ := (covering x).choose_spec
-      mappings M hM ⟨x, hx⟩
+      mappings (covering x).choose (covering x).choose_spec.left ⟨x, (covering x).choose_spec.right⟩
 
 
     map_add' := by
@@ -76,7 +74,6 @@ def gluedLinearMap
       have hyT : y ∈ T := hST hyS
       have hxyT : x + y ∈ T := hMxyT hxy
 
-      simp
       calc
         mappings Mxy hMxy ⟨x + y, hxy⟩
             = mappings T hT ⟨x + y, hxyT⟩ := compatible hMxy hT (x + y) hxy hxyT
@@ -141,9 +138,10 @@ theorem gluedLinearMap_continuous
   let M_f := (covering x).choose
   let ⟨hM_f, hx_f⟩ := (covering x).choose_spec
   rcases covering x with ⟨M, hM, hx⟩
+  simp [gluedLinearMap]
 
   calc
-    ‖f x‖ = ‖mappings M_f hM_f ⟨x, hx_f⟩‖ := by sorry
+    _ = ‖mappings M_f hM_f ⟨x, hx_f⟩‖ := by simp [M_f]
     _ = ‖mappings M hM ⟨x, hx⟩‖ := by
       rw [compatible hM_f hM x hx_f hx]
     _ ≤ ‖mappings M hM‖ * ‖(⟨x, hx⟩ : M)‖ := (mappings M hM).le_opNorm _
